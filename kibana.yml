@@ -1,0 +1,14 @@
+# trimmed from: https://github.com/elkninja/elastic-stack-docker-part-two/blob/5bdd2c5c19dbf994781d886aae402aecc5ef0a01/kibana.yml
+
+## uncomment to have Kibana itself use apm
+#elastic:
+#  apm:
+#    active: true
+#    serverUrl: "http://apm-server:8200"
+#    secretToken: ${ELASTIC_APM_SECRET_TOKEN}
+
+server.host: "0.0.0.0"
+telemetry.enabled: "false"  # ?
+xpack.fleet.packages:
+  - name: apm
+    version: latest

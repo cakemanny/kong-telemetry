@@ -1,0 +1,19 @@
+# For full config guide see
+# - https://raw.githubusercontent.com/elastic/apm-server/8.12/apm-server.docker.yml
+# - https://www.elastic.co/guide/en/observability/current/configuring-howto-apm-server.html
+apm-server:
+  host: "0.0.0.0:8200"
+  #auth:
+  #  secret_token: ${ELASTIC_APM_SECRET_TOKEN} # set in docker-compose.yml
+output.elasticsearch:
+  hosts: ["es01:9200"]
+  enabled: true
+  protocol: "https"
+  username: "elastic"
+  #password: ${ELASTIC_PASSWORD} # set in docker-compose.yml
+  ssl.enabled: true
+  ssl.verification_mode: full
+  ssl.certificate_authorities: ["certs/ca/ca.crt"]
+instrumentation:
+  # Set to true to enable instrumentation of the APM Server itself.
+  enabled: false

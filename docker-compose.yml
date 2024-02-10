@@ -132,8 +132,42 @@ services:
     environment:
       - OTEL_RESOURCE_ATTRIBUTES=service.name=dice,service.version=0.1.0,deployment.environment=production
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://apm-server:8200
-      - "OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer db6496b7e310a16f798a6f990f1a48be636755289d67ecbefccf9a634387e4e5"
+      - "OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer ${ELASTIC_APM_SECRET_TOKEN}"
       - OTEL_METRICS_EXPORTER=otlp
       - OTEL_LOGS_EXPORTER=otlp
+
+  kong:
+    image: kong:3.3.0
+    depends_on:
+      dice:
+        condition: service_started
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "2"
+    environment:
+      KONG_LOG_LEVEL: info
+      KONG_PROXY_ACCESS_LOG: "off"  #/dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_PROXY_LISTEN: 0.0.0.0:8080 reuseport backlog=163840
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_PORT_MAPS: "80:8080"
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /kong.yml
+
+      # https://docs.konghq.com/gateway/3.3.x/reference/configuration/#tracing_instrumentations
+      KONG_TRACING_INSTRUMENTATIONS: all
+      # https://docs.konghq.com/gateway/3.3.x/reference/configuration/#tracing_sampling_rate
+      KONG_TRACING_SAMPLING_RATE: "0.25"
+    volumes:
+      - ./kong.yml:/kong.yml:ro
     ports:
-      - 8080:8080
+      - 80:8080
+      # - 443:8443
+      - 127.0.0.1:8001:8001
+    healthcheck:
+      test: kong health
+      interval: 10s
+      timeout: 2s
+      retries: 10

@@ -1,0 +1,30 @@
+# Guide to dbless mode
+# - https://docs.konghq.com/gateway/3.3.x/production/deployment-topologies/db-less-and-declarative-config/#declarative-configuration-format
+
+_format_version: "3.0"
+_transform: true
+
+
+# https://docs.konghq.com/gateway/3.3.x/admin-api/#service-object
+services:
+- name: dice
+  url: http://dice:8080
+  routes:
+  - name: dice-route
+    paths:
+    - "/"
+
+plugins:
+# https://docs.konghq.com/hub/kong-inc/opentelemetry/3.3.x/how-to/basic-example/
+- name: opentelemetry
+  config:
+    endpoint: http://apm-server:8200/v1/traces
+    headers:
+      Authorization: Bearer db6496b7e310a16f798a6f990f1a48be636755289d67ecbefccf9a634387e4e5
+    # https://docs.konghq.com/hub/kong-inc/opentelemetry/3.3.x/configuration/#config-resource_attributes
+    resource_attributes:
+      # service.name and service.version are set to kong, automatically
+      # https://github.com/open-telemetry/semantic-conventions/blob/main/docs/resource/README.md#environment
+      deployment.environment: production
+    # header_type could be used to drop headers from external parties
+    # https://docs.konghq.com/hub/kong-inc/opentelemetry/3.3.x/configuration/#config-header_type

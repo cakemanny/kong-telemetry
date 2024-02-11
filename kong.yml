@@ -10,9 +10,14 @@ services:
 - name: dice
   url: http://dice:8080
   routes:
-  - name: dice-route
+  - name: roll-route
+    strip_path: false
     paths:
-    - "/"
+    - "/rolldice"
+  - name: plugin
+    strip_path: false
+    paths:
+    - "/plugin"
 
 plugins:
 # https://docs.konghq.com/hub/kong-inc/opentelemetry/3.3.x/how-to/basic-example/
@@ -28,3 +33,8 @@ plugins:
       deployment.environment: production
     # header_type could be used to drop headers from external parties
     # https://docs.konghq.com/hub/kong-inc/opentelemetry/3.3.x/configuration/#config-header_type
+
+- name: goplugin
+  route: plugin
+  config:
+    message: "heyyyy"

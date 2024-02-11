@@ -5,6 +5,7 @@ This is an example project showing how the OpenTelemetry plugin within
 kong can be used to send traces to Elastic APM
 
 ## Using
+### Setting Up
 
 Get everything up and running
 ```console
@@ -20,9 +21,18 @@ Go to http://localhost:5601/app/apm/services
 Login as `elastic` using `elastopass` as the password
 
 
-## Cleaning up
+### Cleaning up
 ```console
 $ docker compose down -v --remove-orphans
+```
+
+### Updating Kong declarative config
+
+If you want to make changes to `kong.yml` without having to restart Kong,
+with `xh` installed, it's very simply to update.
+
+```console
+$ xh POST localhost:8001/config -- config=@kong.yml
 ```
 
 ## Yet to try

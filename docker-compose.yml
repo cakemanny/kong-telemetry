@@ -1,10 +1,12 @@
+# https://docs.docker.com/compose/compose-file/compose-file-v3/
 version: "3.8"
 name: "kong-telemetry"
 
 volumes:
- certs:
- esdata01:
- kibanadata:
+  certs:
+  esdata01:
+  kibanadata:
+  goplugins:
 
 services:
   # Derived from https://www.elastic.co/blog/getting-started-with-the-elastic-stack-and-docker-compose
@@ -136,16 +138,27 @@ services:
       - OTEL_METRICS_EXPORTER=otlp
       - OTEL_LOGS_EXPORTER=otlp
 
+  go-plugins:
+    build: goplugin
+    restart: "no"
+    volumes:
+      - goplugins:/mnt/goplugins
+    command: |
+      cp /go/bin/goplugin /mnt/goplugins/.
+
   kong:
     image: kong:3.3.0
     depends_on:
       dice:
         condition: service_started
+      go-plugins:
+        condition: service_completed_successfully
     logging:
       driver: "json-file"
       options:
         max-size: "50m"
         max-file: "2"
+    # https://docs.konghq.com/gateway/3.3.x/production/environment-variables/
     environment:
       KONG_LOG_LEVEL: info
       KONG_PROXY_ACCESS_LOG: "off"  #/dev/stdout
@@ -160,8 +173,19 @@ services:
       KONG_TRACING_INSTRUMENTATIONS: all
       # https://docs.konghq.com/gateway/3.3.x/reference/configuration/#tracing_sampling_rate
       KONG_TRACING_SAMPLING_RATE: "0.25"
+
+      # https://docs.konghq.com/gateway/3.3.x/reference/configuration/#plugins
+      KONG_PLUGINS: bundled,goplugin
+      # https://docs.konghq.com/gateway/3.3.x/reference/configuration/#pluginserver_names
+      KONG_PLUGINSERVER_NAMES: goplugin
+
+      KONG_PLUGINSERVER_GOPLUGIN_START_CMD: /goplugins/goplugin -kong-prefix /usr/local/kong/
+      KONG_PLUGINSERVER_GOPLUGIN_QUERY_CMD: /goplugins/goplugin -dump
+      KONG_PLUGINSERVER_GOPLUGIN_SOCKET: /usr/local/kong/goplugin.socket
+
     volumes:
       - ./kong.yml:/kong.yml:ro
+      - goplugins:/goplugins:ro
     ports:
       - 80:8080
       # - 443:8443

@@ -148,11 +148,15 @@ services:
 
   go-plugins:
     build: goplugin
-    restart: "no"
+    restart: on-failure
     volumes:
       - goplugins:/mnt/goplugins
-    command: |
-      cp /go/bin/goplugin /mnt/goplugins/.
+    environment:
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=goplugin,service.version=0.1.0,deployment.environment=production
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://apm-server:8200
+      - "OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer ${ELASTIC_APM_SECRET_TOKEN}"
+      - OTEL_METRICS_EXPORTER=otlp
+      - OTEL_LOGS_EXPORTER=otlp
 
   kong:
     image: kong:3.3.0
@@ -160,7 +164,7 @@ services:
       dice:
         condition: service_started
       go-plugins:
-        condition: service_completed_successfully
+        condition: service_started
     logging:
       driver: "json-file"
       options:
@@ -188,15 +192,16 @@ services:
       KONG_PLUGINSERVER_NAMES: goplugin
 
       # Idea: can we pass env vars in the command?
-      KONG_PLUGINSERVER_GOPLUGIN_START_CMD: /goplugins/goplugin -instrument -kong-prefix /usr/local/kong/
-      KONG_PLUGINSERVER_GOPLUGIN_QUERY_CMD: /goplugins/goplugin -dump
-      KONG_PLUGINSERVER_GOPLUGIN_SOCKET: /usr/local/kong/goplugin.socket
+      KONG_PLUGINSERVER_GOPLUGIN_START_CMD: |
+        bash -c 'while test -S /mnt/goplugins/goplugin.socket; do sleep 1; done'
+      KONG_PLUGINSERVER_GOPLUGIN_QUERY_CMD: cat /mnt/goplugins/dump.json
+      KONG_PLUGINSERVER_GOPLUGIN_SOCKET: /mnt/goplugins/goplugin.socket
 
       ELASTIC_APM_AUTH_HEADER: "Bearer ${ELASTIC_APM_SECRET_TOKEN}"
 
     volumes:
       - ./kong.yml:/kong.yml:ro
-      - goplugins:/goplugins:ro
+      - goplugins:/mnt/goplugins
     ports:
       - 80:8080
       # - 443:8443

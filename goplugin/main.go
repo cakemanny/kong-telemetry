@@ -46,29 +46,32 @@ func (conf Config) Access(kong *pdk.PDK) {
 
 	ctx, span, err := startAccessSpan(conf.baseContext, kong)
 	if err != nil {
-		kong.Log.Err(err.Error())
+		_ = kong.Log.Err(err.Error())
 		kong.Response.ExitStatus(500)
 		return
 	}
 	defer span.End()
 
-	_, childSpan := tracer.Start(ctx, "Get Host")
+	_, childSpan := getTracer(span).Start(ctx, "Get Host")
 	host, err := kong.Request.GetHeader("Host")
 	childSpan.End()
 	childSpan = nil
 	if err != nil {
-		kong.Log.Err(err.Error())
+		_ = kong.Log.Err(err.Error())
 	}
 	message := conf.Message
 	if message == "" {
 		message = "hello"
 	}
-	_, childSpan = tracer.Start(ctx, "Set header")
-	kong.Response.SetHeader("x-hello-from-go", fmt.Sprintf("Go says %s to %s", message, host))
+	_, childSpan = getTracer(span).Start(ctx, "Set header")
+	err = kong.Response.SetHeader("x-hello-from-go", fmt.Sprintf("Go says %s to %s", message, host))
 	childSpan.End()
 	childSpan = nil
+	if err != nil {
+		_ = kong.Log.Err(err.Error())
+	}
 
-	_, childSpan = tracer.Start(ctx, "Exit 200")
+	_, childSpan = getTracer(span).Start(ctx, "Exit 200")
 	kong.Response.ExitStatus(200)
 	childSpan.End()
 	childSpan = nil
@@ -76,32 +79,23 @@ func (conf Config) Access(kong *pdk.PDK) {
 	span.SetAttributes(semconv.HTTPResponseStatusCode(200))
 }
 
-func main() {
-	if isDumpOrHelp() {
-		server.StartServer(mkNew(context.Background()), pluginVersion, 0)
-		return
-	}
+var (
+	instrument = flag.Bool("instrument", false, "run the otel instrumented server")
+)
 
-	if err := run(); err != nil {
-		log.Fatalln(err)
+func main() {
+	flag.Parse()
+	if *instrument {
+		if err := run(); err != nil {
+			log.Fatalln(err)
+		}
 	}
+	// probably -dump or -help
+	_ = enterPDK(context.Background())
 }
 
-// We have to avoid OTEL setup .... this is is an awful hack
-func isDumpOrHelp() bool {
-	flagSet := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
-	var (
-		// Must be kept in sync it
-		// https://github.com/Kong/go-pdk/blob/master/server/os.go#L14-L16
-		_    = flagSet.String("kong-prefix", "/usr/local/kong", "")
-		dump = flagSet.Bool("dump", false, "")
-		help = flagSet.Bool("help", false, "")
-	)
-	err := flagSet.Parse(os.Args[1:])
-	if err != nil || *dump || *help {
-		return true
-	}
-	return false
+func enterPDK(ctx context.Context) error {
+	return server.StartServer(mkNew(ctx), pluginVersion, 0)
 }
 
 func run() (err error) {
@@ -124,7 +118,7 @@ func run() (err error) {
 	// Start Plugin server.
 	srvErr := make(chan error, 1)
 	go func() {
-		srvErr <- server.StartServer(mkNew(ctx), pluginVersion, 0)
+		srvErr <- enterPDK(ctx)
 	}()
 
 	// Wait for interruption.

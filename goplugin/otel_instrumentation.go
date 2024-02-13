@@ -23,6 +23,9 @@ var (
 func newTracer(tp trace.TracerProvider) trace.Tracer {
 	return tp.Tracer(ScopeName)
 }
+func getTracer(span trace.Span) trace.Tracer {
+	return newTracer(span.TracerProvider())
+}
 
 // Inspiration ...
 // "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -30,35 +33,25 @@ func newTracer(tp trace.TracerProvider) trace.Tracer {
 func startAccessSpan(octx context.Context, kong *pdk.PDK) (context.Context, trace.Span, error) {
 	var ctx context.Context = octx
 	// Maybe we could fire these all off as separate goroutines?
-	opts := []trace.SpanStartOption{}
+	opts := []trace.SpanStartOption{
+		trace.WithSpanKind(trace.SpanKindServer),
+	}
 
-	var tracer trace.Tracer
 	// Certain actions here seem to break the trace.
 	// But when it doesn' break, it doesn't seem to do much at all.. :(
 	pick := rand.Int()%2 == 0
-	pick2 := rand.Int()%2 == 0
+	pick = true
 	if pick {
 		headers, err := kong.Request.GetHeaders(-1)
 		if err != nil {
 			return octx, nil, err
 		}
-		ctx := otel.GetTextMapPropagator().Extract(
+
+		ctx = otel.GetTextMapPropagator().Extract(
 			octx, propagation.HeaderCarrier(normalizeHeaders(headers)))
 
-		if pick2 {
-			// We start a new root for our plugin
-			opts = append(opts, trace.WithNewRoot())
-			if s := trace.SpanContextFromContext(ctx); s.IsValid() && s.IsRemote() {
-				opts = append(opts, trace.WithLinks(trace.Link{SpanContext: s}))
-			}
-		}
-
-		if span := trace.SpanFromContext(octx); span.SpanContext().IsValid() {
-			tracer = newTracer(span.TracerProvider())
-		} else {
-			tracer = newTracer(otel.GetTracerProvider())
-		}
 	}
+	tracer := newTracer(otel.GetTracerProvider())
 
 	// Idea: span each kong access?
 	method, err := kong.Request.GetMethod()
@@ -70,15 +63,14 @@ func startAccessSpan(octx context.Context, kong *pdk.PDK) (context.Context, trac
 	if err != nil {
 		return ctx, nil, err
 	}
+
 	opts = append(opts, trace.WithAttributes(
 		semconv.HTTPRequestMethodKey.String(method),
 		semconv.URLPath(path),
 	))
 
-	ctx, span := tracer.Start(ctx, fmt.Sprintf("%s %s", method, path))
-
+	ctx, span := tracer.Start(ctx, fmt.Sprintf("%s %s", method, path), opts...)
 	span.SetAttributes(attribute.Bool("context.propagated", pick))
-	span.SetAttributes(attribute.Bool("root.new", pick2))
 
 	return ctx, span, nil
 }

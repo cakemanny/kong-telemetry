@@ -112,6 +112,7 @@ services:
     depends_on:
       es01:
         condition: service_healthy
+    restart: on-failure
     image: docker.elastic.co/apm/apm-server:${STACK_VERSION}
     user: root  # needed to be able to access certs
     command:
@@ -128,6 +129,13 @@ services:
         source: ./apm-server.docker.yml
         target: /usr/share/apm-server/apm-server.yml
         read_only: true
+    healthcheck:
+      # https://who23.github.io/2020/12/03/sockets-in-your-shell.html
+      test: |
+        bash -c 'set -eu; exec 3<>/dev/tcp/localhost/8200; echo $?'
+      interval: 10s
+      timeout: 2s
+      retries: 10
 
   dice:
     build: dice
@@ -170,18 +178,21 @@ services:
       KONG_DECLARATIVE_CONFIG: /kong.yml
 
       # https://docs.konghq.com/gateway/3.3.x/reference/configuration/#tracing_instrumentations
-      KONG_TRACING_INSTRUMENTATIONS: all
+      KONG_TRACING_INSTRUMENTATIONS: request,dns_query,router,http_client,plugin_access,plugin_header_filter
       # https://docs.konghq.com/gateway/3.3.x/reference/configuration/#tracing_sampling_rate
-      KONG_TRACING_SAMPLING_RATE: "0.25"
+      KONG_TRACING_SAMPLING_RATE: "1.0"
 
       # https://docs.konghq.com/gateway/3.3.x/reference/configuration/#plugins
       KONG_PLUGINS: bundled,goplugin
       # https://docs.konghq.com/gateway/3.3.x/reference/configuration/#pluginserver_names
       KONG_PLUGINSERVER_NAMES: goplugin
 
-      KONG_PLUGINSERVER_GOPLUGIN_START_CMD: /goplugins/goplugin -kong-prefix /usr/local/kong/
+      # Idea: can we pass env vars in the command?
+      KONG_PLUGINSERVER_GOPLUGIN_START_CMD: /goplugins/goplugin -instrument -kong-prefix /usr/local/kong/
       KONG_PLUGINSERVER_GOPLUGIN_QUERY_CMD: /goplugins/goplugin -dump
       KONG_PLUGINSERVER_GOPLUGIN_SOCKET: /usr/local/kong/goplugin.socket
+
+      ELASTIC_APM_AUTH_HEADER: "Bearer ${ELASTIC_APM_SECRET_TOKEN}"
 
     volumes:
       - ./kong.yml:/kong.yml:ro

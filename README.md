@@ -34,9 +34,3 @@ with `xh` installed, it's very simply to update.
 ```console
 $ xh POST localhost:8001/config -- config=@kong.yml
 ```
-
-## Yet to try
-
-Add a small go plugin like the one in
-[bettermarks/kong\_8531](https://github.com/bettermarks/kong_8531/tree/simplified-goplugin-repro-3-1-0)
-but one that also has some otel instrumentation.

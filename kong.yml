@@ -25,7 +25,7 @@ plugins:
   config:
     endpoint: http://apm-server:8200/v1/traces
     headers:
-      Authorization: Bearer db6496b7e310a16f798a6f990f1a48be636755289d67ecbefccf9a634387e4e5
+      Authorization: "{vault://env/elastic-apm-auth-header}"
     # https://docs.konghq.com/hub/kong-inc/opentelemetry/3.3.x/configuration/#config-resource_attributes
     resource_attributes:
       # service.name and service.version are set to kong, automatically

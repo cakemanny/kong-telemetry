@@ -1,0 +1,12 @@
+resources:
+  - k8s/dice-deployment.yaml
+  - k8s/dice-service.yaml
+  - k8s/kong-deployment.yaml
+  - k8s/kong-service.yaml
+  - k8s/jaeger-pod.yaml
+  - k8s/jaeger-service.yaml
+
+configMapGenerator:
+  - name: kong-config
+    files:
+      - "kong.yml"

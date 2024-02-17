@@ -1,0 +1,18 @@
+apiVersion: skaffold/v4beta9
+kind: Config
+metadata:
+  name: kong-telemetry
+build:
+  artifacts:
+    - image: dice
+      context: dice
+      docker:
+        dockerfile: Dockerfile
+    - image: go-plugins
+      context: goplugin
+      docker:
+        dockerfile: Dockerfile
+manifests:
+  kustomize:
+    paths:
+      - .

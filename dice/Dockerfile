@@ -1,17 +1,21 @@
 # Start by building the application.
 FROM golang:1.21 as build
 
-WORKDIR /go/src/app
-COPY go.mod go.mod
-COPY go.sum go.sum
+RUN go env -w GOMODCACHE=/root/.cache/go-build
 
-RUN go mod download
+WORKDIR /go/src/app
+
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    go mod download && go mod verify
+
 COPY . .
-RUN CGO_ENABLED=0 go build -o /go/bin/app
+RUN --mount=type=cache,target=/root/.cache/go-build\
+    CGO_ENABLED=0 go build -o /go/bin/app
 
 # Now copy it into our base image.
 FROM gcr.io/distroless/static-debian12
-COPY --from=build /go/bin/app /
+COPY --from=build --link /go/bin/app /
 CMD ["/app"]
 
 ENV OTEL_RESOURCE_ATTRIBUTES=service.name=dice,service.version=0.1.0

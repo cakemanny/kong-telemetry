@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kong
+  labels:
+    app: kong
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kong
+  template:
+    metadata:
+      labels:
+        app: kong
+    spec:
+      initContainers:
+        - args:
+            - cp
+            - /go/bin/goplugin
+            - /goplugins/.
+          image: go-plugins
+          name: go-plugins
+          volumeMounts:
+            - mountPath: /goplugins
+              name: goplugins
+      containers:
+        - name: kong
+          image: kong:3.3.0
+          env:
+            - name: OTEL_TRACES_HTTP_ENDPOINT
+              value: http://jaeger:4318/v1/traces
+            - name: KONG_ADMIN_LISTEN
+              value: 0.0.0.0:8001
+            - name: KONG_DATABASE
+              value: "off"
+            - name: KONG_DECLARATIVE_CONFIG
+              value: /etc/kong/kong.yml
+            - name: KONG_LOG_LEVEL
+              value: info
+            - name: KONG_PLUGINS
+              value: bundled,goplugin
+            - name: KONG_PLUGINSERVER_GOPLUGIN_QUERY_CMD
+              value: /goplugins/goplugin -dump
+            - name: KONG_PLUGINSERVER_GOPLUGIN_SOCKET
+              value: /usr/local/kong/goplugin.socket
+            - name: KONG_PLUGINSERVER_GOPLUGIN_START_CMD
+              value: >
+                env
+                OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+                /goplugins/goplugin
+                -instrument
+                -kong-prefix /usr/local/kong/
+            - name: KONG_PLUGINSERVER_NAMES
+              value: goplugin
+            - name: KONG_PORT_MAPS
+              value: 8000:8000
+            - name: KONG_PROXY_ACCESS_LOG
+              value: "off"
+            - name: KONG_PROXY_ERROR_LOG
+              value: /dev/stderr
+            - name: KONG_PROXY_LISTEN
+              value: 0.0.0.0:8000 reuseport backlog=163840
+            - name: KONG_TRACING_INSTRUMENTATIONS
+              value: request,dns_query,router,http_client,plugin_access,plugin_header_filter
+            - name: KONG_TRACING_SAMPLING_RATE
+              value: "1.0"
+          livenessProbe:
+            exec:
+              command:
+                - kong health
+            failureThreshold: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+            - containerPort: 8001
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /etc/kong
+              name: kong-config
+              readOnly: true
+            - mountPath: /goplugins
+              name: goplugins
+              readOnly: true
+      volumes:
+        - name: kong-config
+          configMap:
+            name: kong-config
+            items:
+              - key: kong.yml
+                path: kong.yml
+        - name: goplugins
+          emptyDir:
+            sizeLimit: 100Mi

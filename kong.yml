@@ -23,9 +23,7 @@ plugins:
 # https://docs.konghq.com/hub/kong-inc/opentelemetry/3.3.x/how-to/basic-example/
 - name: opentelemetry
   config:
-    endpoint: http://apm-server:8200/v1/traces
-    headers:
-      Authorization: "{vault://env/elastic-apm-auth-header}"
+    endpoint: http://jaeger:4318/v1/traces
     # https://docs.konghq.com/hub/kong-inc/opentelemetry/3.3.x/configuration/#config-resource_attributes
     resource_attributes:
       # service.name and service.version are set to kong, automatically

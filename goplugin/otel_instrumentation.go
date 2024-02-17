@@ -3,12 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"net/http"
 
 	"github.com/Kong/go-pdk"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.opentelemetry.io/otel/trace"
@@ -39,18 +37,14 @@ func startAccessSpan(octx context.Context, kong *pdk.PDK) (context.Context, trac
 
 	// Certain actions here seem to break the trace.
 	// But when it doesn' break, it doesn't seem to do much at all.. :(
-	pick := rand.Int()%2 == 0
-	pick = true
-	if pick {
-		headers, err := kong.Request.GetHeaders(-1)
-		if err != nil {
-			return octx, nil, err
-		}
-
-		ctx = otel.GetTextMapPropagator().Extract(
-			octx, propagation.HeaderCarrier(normalizeHeaders(headers)))
-
+	headers, err := kong.Request.GetHeaders(-1)
+	if err != nil {
+		return octx, nil, err
 	}
+
+	ctx = otel.GetTextMapPropagator().Extract(
+		octx, propagation.HeaderCarrier(normalizeHeaders(headers)))
+
 	tracer := newTracer(otel.GetTracerProvider())
 
 	// Idea: span each kong access?
@@ -70,7 +64,6 @@ func startAccessSpan(octx context.Context, kong *pdk.PDK) (context.Context, trac
 	))
 
 	ctx, span := tracer.Start(ctx, fmt.Sprintf("%s %s", method, path), opts...)
-	span.SetAttributes(attribute.Bool("context.propagated", pick))
 
 	return ctx, span, nil
 }

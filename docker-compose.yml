@@ -188,7 +188,10 @@ services:
       KONG_PLUGINSERVER_NAMES: goplugin
 
       # Idea: can we pass env vars in the command?
-      KONG_PLUGINSERVER_GOPLUGIN_START_CMD: /goplugins/goplugin -instrument -kong-prefix /usr/local/kong/
+      KONG_PLUGINSERVER_GOPLUGIN_START_CMD: >
+        env
+          ELASTIC_APM_AUTH_HEADER="Bearer ${ELASTIC_APM_SECRET_TOKEN}"
+        /goplugins/goplugin -instrument -kong-prefix /usr/local/kong/
       KONG_PLUGINSERVER_GOPLUGIN_QUERY_CMD: /goplugins/goplugin -dump
       KONG_PLUGINSERVER_GOPLUGIN_SOCKET: /usr/local/kong/goplugin.socket
 

@@ -26,7 +26,7 @@ func init() {
 	// TODO: load from a config file?
 	otelConfig.ExporterOTLPEndpoint = "http://apm-server:8200"
 	otelConfig.ExporterOTLPHeaders = map[string]string{
-		"Authorization": "Bearer db6496b7e310a16f798a6f990f1a48be636755289d67ecbefccf9a634387e4e5",
+		"Authorization": os.Getenv("ELASTIC_APM_AUTH_HEADER"),
 	}
 	otelConfig.Environment = "production"
 }

@@ -18,6 +18,14 @@ services:
     strip_path: false
     paths:
     - "/plugin"
+- name: pysvc
+  url: http://pysvc:8080
+  routes:
+  - name: pysvc-route
+    strip_path: true
+    paths:
+    - "/python"
+
 
 plugins:
 # https://docs.konghq.com/hub/kong-inc/opentelemetry/3.3.x/how-to/basic-example/

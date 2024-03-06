@@ -68,7 +68,8 @@ spec:
           livenessProbe:
             exec:
               command:
-                - kong health
+                - kong
+                - health
             failureThreshold: 10
             periodSeconds: 10
             timeoutSeconds: 2

@@ -11,7 +11,7 @@ and a Kong plugin written in GO
 ### Tools
 - [kind](https://kind.sigs.k8s.io/) or [minikube](https://minikube.sigs.k8s.io/)
   for running a local kubernetes cluster.
-- [skaffold](https://skaffold.dev/) to build and deploy to the cluster
+- [tilt](https://tilt.dev/) to build and deploy to the cluster
 
 ### Setting Up
 
@@ -23,7 +23,7 @@ kind create cluster
 
 Get everything up and running
 ```shell
-skaffold dev --port-forward
+tilt up
 ```
 
 Give our demo service, dice, a bit of traffic
@@ -33,7 +33,7 @@ curl -i localhost:8000/rolldice
 
 Or hit the plugin
 ```shell
-curl -i localhost:8000/rolldice
+curl -i localhost:8000/plugin
 ```
 
 Go to http://localhost:16686/ to view the Jaeger UI and you can search for
@@ -55,7 +55,7 @@ TODO: check if this works with curl
 
 ### Cleaning up
 
-Hitting <kbd>CTRL+C</kbd> will have skaffold remove everything from the cluster
+Running `tilt down` will have tilt remove everything from the cluster
 
 Remove the cluster
 ```shell

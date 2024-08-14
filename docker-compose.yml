@@ -194,7 +194,7 @@ services:
       # https://docs.konghq.com/gateway/3.3.x/reference/configuration/#tracing_instrumentations
       KONG_TRACING_INSTRUMENTATIONS: request,dns_query,router,http_client,plugin_access,plugin_header_filter
       # https://docs.konghq.com/gateway/3.3.x/reference/configuration/#tracing_sampling_rate
-      KONG_TRACING_SAMPLING_RATE: "1.0"
+      KONG_TRACING_SAMPLING_RATE: "0.1"
 
       # https://docs.konghq.com/gateway/3.3.x/reference/configuration/#plugins
       KONG_PLUGINS: bundled,goplugin

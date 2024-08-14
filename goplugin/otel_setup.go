@@ -65,6 +65,8 @@ func newTraceProvider(ctx context.Context) (*trace.TracerProvider, error) {
 		return nil, err
 	}
 	traceProvider := trace.NewTracerProvider(
+		// TODO: make configurable
+		trace.WithSampler(trace.ParentBased(trace.TraceIDRatioBased(0.1))),
 		trace.WithBatcher(traceExporter,
 			trace.WithBatchTimeout(5*time.Second)),
 	)

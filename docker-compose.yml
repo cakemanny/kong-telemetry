@@ -169,7 +169,7 @@ services:
       - OTEL_LOGS_EXPORTER=otlp
 
   kong:
-    image: kong:3.3.0
+    image: kong:3.7.0
     depends_on:
       dice:
         condition: service_started
@@ -192,7 +192,7 @@ services:
       KONG_DECLARATIVE_CONFIG: /kong.yml
 
       # https://docs.konghq.com/gateway/3.3.x/reference/configuration/#tracing_instrumentations
-      KONG_TRACING_INSTRUMENTATIONS: request,dns_query,router,http_client,plugin_access,plugin_header_filter
+      KONG_TRACING_INSTRUMENTATIONS: all
       # https://docs.konghq.com/gateway/3.3.x/reference/configuration/#tracing_sampling_rate
       KONG_TRACING_SAMPLING_RATE: "0.1"
 

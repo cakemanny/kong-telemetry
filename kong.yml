@@ -28,21 +28,34 @@ services:
 
 
 plugins:
-# https://docs.konghq.com/hub/kong-inc/opentelemetry/3.3.x/how-to/basic-example/
+# https://docs.konghq.com/hub/kong-inc/opentelemetry/3.7.x/how-to/basic-example/
 - name: opentelemetry
   config:
     endpoint: http://apm-server:8200/v1/traces
     headers:
       Authorization: "{vault://env/elastic-apm-auth-header}"
-    # https://docs.konghq.com/hub/kong-inc/opentelemetry/3.3.x/configuration/#config-resource_attributes
+    # https://docs.konghq.com/hub/kong-inc/opentelemetry/3.7.x/configuration/#config-resource_attributes
     resource_attributes:
       # service.name and service.version are set to kong, automatically
       # https://github.com/open-telemetry/semantic-conventions/blob/main/docs/resource/README.md#environment
       deployment.environment: production
     # header_type could be used to drop headers from external parties
-    # https://docs.konghq.com/hub/kong-inc/opentelemetry/3.3.x/configuration/#config-header_type
+    # https://docs.konghq.com/hub/kong-inc/opentelemetry/3.7.x/configuration/#config-propagation
+    propagation:
+      default_format: w3c
+      extract: [w3c]
+      inject: [w3c]
+
 
 - name: goplugin
   route: plugin
   config:
     message: "heyyyy"
+
+
+- name: pre-function
+  service: pysvc
+  config: &add-trace-state-header
+    access:
+    - |
+      kong.service.request.add_header("Tracestate", "es=s:0.0625")
